@@ -23,44 +23,42 @@ class TenderScoringEngine:
 
     @staticmethod
     def format_telegram_summary(result: TenderAnalysisResult) -> str:
-        """Formats analysis result into a clean, scannable Telegram Markdown message."""
-        status_emoji = {
-            RecommendationEnum.PARTICIPATE: "✅",
-            RecommendationEnum.RISKY: "⛔️",
-            RecommendationEnum.NEEDS_CLARIFICATION: "⚠️",
-        }.get(result.recommendation, "ℹ️")
-
-        risk_bar = "🟢" if result.risk_score < 40 else "🟡" if result.risk_score < 65 else "🔴"
+        """Formats analysis result into a clean, professional Telegram Markdown message."""
+        status_prefix = {
+            RecommendationEnum.PARTICIPATE: "[ДОПУСК]",
+            RecommendationEnum.RISKY: "[ВЫСОКИЙ РИСК]",
+            RecommendationEnum.NEEDS_CLARIFICATION: "[ТРЕБУЕТСЯ УТОЧНЕНИЕ]",
+        }.get(result.recommendation, "[ИНФО]")
 
         text = [
-            f"*{status_emoji} РЕЗЮМЕ АНАЛИЗА ЗАКУПКИ № {result.tender_id}*",
+            f"*РЕЗЮМЕ АНАЛИЗА ЗАКУПКИ № {result.tender_id}*",
             f"*{'=' * 30}*",
-            f"📊 *Рекомендация:* {result.recommendation.value}",
-            f"{risk_bar} *Индекс риска:* `{result.risk_score}/100`\n",
-            f"📌 *Суть ТЗ:* {result.summary}",
-            f"💰 *Финансы:* {result.financial_summary}\n",
+            f"*Рекомендация:* {status_prefix} {result.recommendation.value}",
+            f"*Индекс риска:* `{result.risk_score}/100`\n",
+            f"*Суть ТЗ:* {result.summary}",
+            f"*Финансы:* {result.financial_summary}\n",
         ]
 
         if result.risks:
-            text.append("🚨 *Выявленные риски и ловушки:*")
+            text.append("*Выявленные риски:*")
             for r in result.risks:
                 quote_part = f" _(Цитата: {r.quote[:80]}...)_" if r.quote else ""
-                text.append(f"• *[{r.category} | {r.severity}]:* {r.description}{quote_part}")
+                text.append(f"• *[{r.category} / {r.severity}]:* {r.description}{quote_part}")
             text.append("")
 
         if result.advantages:
-            text.append("💎 *Плюсы и возможности:*")
+            text.append("*Положительные факторы:*")
             for adv in result.advantages:
                 text.append(f"• {adv}")
             text.append("")
 
         if result.missing_docs:
-            text.append("📋 *Обязательные лицензии / реестры:*")
+            text.append("*Обязательные лицензии и реестры:*")
             for doc in result.missing_docs:
                 text.append(f"• {doc}")
             text.append("")
 
         text.append(f"_{'=' * 30}_")
-        text.append("🤖 _Сгенерировано AI-ассистентом TenderAI Sentinel_")
+        text.append("_TenderAI Sentinel_")
 
         return "\n".join(text)
