@@ -1,42 +1,59 @@
-<div align="center">
+# TenderAI Sentinel
 
-<img src="docs/assets/logo.svg" alt="TenderAI Sentinel" width="820">
+Сервис автоматизированного мониторинга государственных и коммерческих закупок (**44-ФЗ**, **223-ФЗ**) с разбором технической документации (PDF, DOCX) и скорингом юридических рисков через **GigaChat API** и **YandexGPT**.
 
-### Autonomous Procurement Intelligence &amp; Risk Scoring Engine
-
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![LLM: GigaChat & YandexGPT](https://img.shields.io/badge/LLM-GigaChat%20%7C%20YandexGPT-red.svg?logo=openai&logoColor=white)](https://developers.sber.ru/)
-[![Tenders: 44-FZ & 223-FZ](https://img.shields.io/badge/Procurement-44--ФЗ%20%7C%20223--ФЗ-00F0FF.svg)]()
-[![aiogram 3](https://img.shields.io/badge/telegram-aiogram%203.6-2CA5E0.svg?logo=telegram&logoColor=white)](https://docs.aiogram.dev/)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Tests: 15 passing](https://img.shields.io/badge/tests-15%20passed%20(100%25)-10B981.svg)]()
-[![Docker: Ready](https://img.shields.io/badge/docker-compose%20ready-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
+[![aiogram 3](https://img.shields.io/badge/aiogram-3.6+-2CA5E0.svg?logo=telegram&logoColor=white)](https://docs.aiogram.dev/)
+[![Tests](https://img.shields.io/badge/tests-15%20passed-brightgreen.svg)]()
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-</div>
+---
 
-**TenderAI Sentinel** — интеллектуальная система мониторинга государственных и коммерческих закупок (**ЕИС Госзакупки**, **Сбербанк-АСТ**, **РТС-тендер**) с автоматическим семантическим разбором документации и ТЗ (PDF/DOCX), RAG-поиском скрытых рисков и принятием решения **«Участвовать / Не участвовать»** через отечественные LLM (**Сбер GigaChat** и **YandexGPT**).
+## Возможности
 
-```bash
-git clone https://github.com/Nari-Ab/tender-ai-bot && cd tender-ai-bot
-docker compose up --build   # запускает REST API и Telegram-бота (демо-режим без ключей)
+- **Мониторинг площадок:** Сбор и фильтрация закупок по ключевым словам, суммам (НМЦК), законам (44-ФЗ / 223-ФЗ) и площадкам (ЕИС Госзакупки, Сбербанк-АСТ).
+- **RAG-пайплайн и разбор документации:** Извлечение текста из ТЗ и проектов контрактов (PDF, DOCX, TXT), семантический чанкинг с привязкой к статьям и разделам.
+- **Анализ юридических рисков:**
+  - Проверка условий неустойки и штрафов на превышение Постановления Правительства РФ № 1042 (1/300 ключевой ставки ЦБ);
+  - Детекция нереалистичных сроков поставки (1–3 дня как признак ограничения конкуренции);
+  - Анализ формы обеспечения (требование денежного залога вместо независимой банковской гарантии);
+  - Проверка спецтребований (реестры Минпромторга, сертификаты СТ-1, лицензии ФСТЭК/ФСБ).
+- **Интерфейсы доставки:**
+  - **Telegram-бот на aiogram 3:** оперативные уведомления, интерактивные кнопки, приём файлов ТЗ напрямую в чат;
+  - **FastAPI сервис:** REST API эндпоинты для вебхуков и интеграции с внутренними системами.
+- **Гибридный LLM-провайдер:** поддержка GigaChat API (Сбер) и YandexGPT (Yandex Cloud) с возможностью переключения на локальный эвристический Mock-режим для тестирования.
+
+---
+
+## Архитектура
+
+```text
+[ Торговые площадки (ЕИС, Сбербанк-АСТ) ] ──► [ Feed Monitor ]
+                                                     │
+[ Файлы ТЗ (.pdf, .docx) ] ──► [ Document Parser ] ──┘
+                                      │
+                                      ▼
+                             [ Semantic Chunker ]
+                                      │
+                                      ▼
+                            [ Clause Retriever ]
+                                      │
+                                      ▼
+                     [ LLM Engine (GigaChat / YandexGPT) ]
+                                      │
+                                      ▼
+                         [ Scoring & Decision Engine ]
+                                      │
+                    ┌─────────────────┴─────────────────┐
+                    ▼                                   ▼
+          [ Telegram Bot (aiogram 3) ]        [ FastAPI REST Service ]
 ```
 
 ---
 
-## ⚡ Живая демонстрация работы
-
-Ниже показан процесс загрузки файла технического задания в Telegram-бота, RAG-чанкинг и моментальный скоринг рисков через GigaChat API:
-
-<div align="center">
-  <img src="docs/assets/demo.svg" alt="TenderAI Sentinel Telegram Bot Audit Demo" width="840">
-</div>
-
----
-
-## 🔍 Пример анализа закупки (Finding Record)
-
-Пример структурированного вердикта по закупке вычислительных комплексов для ЦОД (НМЦК 48 млн ₽):
+## Пример работы скоринга
 
 ```text
 ⛔️ РЕЗЮМЕ АНАЛИЗА ЗАКУПКИ № 0373100012324000999 (44-ФЗ)
@@ -45,87 +62,50 @@ docker compose up --build   # запускает REST API и Telegram-бота (
 🔴 Индекс риска:    95 / 100
 💰 Финансы:         НМЦК: 48,000,000 ₽ · Обеспечение: 14,400,000 ₽ (30%)
 
-🚨 ВЫЯВЛЕННЫЕ КРИТИЧЕСКИЕ ЛОВУШКИ И КАБАЛЬНЫЕ УСЛОВИЯ (4):
+🚨 Выявленные риски:
+• [Сроки | CRITICAL]: Срок поставки 3 календарных дня с даты заключения контракта
+• [Штрафы | HIGH]: Неустойка 2% в день (960 000 ₽/день), превышает ПП РФ №1042
+• [Обеспечение | HIGH]: Обеспечение 30% исключительно живыми деньгами на счет
+• [Требования | MEDIUM]: Лицензия ФСБ формы 2 на работу с гостайной
 
-  ● [Сроки | CRITICAL] — Срок поставки 3 календарных дня с даты контракта
-      └─ Риск сговора: невозможно произвести и поставить 48 серверов за 72 часа
-  
-  ● [Штрафы | HIGH] — Неустойка 2% в день (960 000 ₽/сутки)
-      └─ Превышает законную ставку 1/300 ЦБ РФ (ПП РФ №1042) более чем в 20 раз
-  
-  ● [Обеспечение | HIGH] — 30% живыми деньгами на счет заказчика
-      └─ Прямой запрет использования банковских гарантий (кассовый разрыв)
-
-  ● [Требования | MEDIUM] — Обязательна лицензия ФСБ формы 2 и сертификаты СТ-1
-      └─ Требуется предоставление документов уже на этапе первой части заявки
-
-ВЕРДИКТ
-  Подача заявки не рекомендуется: максимальный риск срыва сроков и попадания в РНП.
+Рекомендация: Высокий риск кассового разрыва и срыва сроков поставки.
 ```
 
 ---
 
-## 🏛 Архитектура решения
+## Быстрый запуск
 
-Система построена на принципах **Clean Architecture** с полным разделением инфраструктурных адаптеров, бизнес-логики и интерфейсов доставки:
-
-<div align="center">
-  <img src="docs/assets/architecture.svg" alt="TenderAI Sentinel Pipeline Architecture" width="840">
-</div>
-
----
-
-## ✨ Ключевые возможности
-
-- 📡 **Мониторинг источников:** Потоковый сбор и фильтрация тендеров с ЕИС Госзакупки (44-ФЗ, 223-ФЗ) и Сбербанк-АСТ по отраслям (ИТ, серверное оборудование, ПО, разработка).
-- 📑 **RAG-пайплайн для ТЗ:** Парсинг файлов любого объема (**PDF**, **DOCX**, **TXT**), семантический чанкинг с учетом юридической структуры контракта.
-- 🇷🇺 **Двойной отечественный LLM-стек:**
-  - **Сбер GigaChat API:** официальный REST/SDK с авторизацией по сертификатам Минцифры и системным JSON-модом.
-  - **Yandex Cloud Foundation Models (YandexGPT):** Completion API для суммаризации и извлечения сущностей.
-  - **Offline Heuristic Mock:** детерминированный движок для тестов и ревью без затрат токенов.
-- ⚖️ **Движок скоринга рисков:** Распознавание признаков «заточки» под аффилированного поставщика, скрытых требований, кабальных неустоек и штрафов.
-- 🤖 **Telegram-бот (aiogram 3):** Интерактивные кнопки, рассылка утренних дайджестов, аудит прикрепленных файлов прямо в чате.
-- 🔌 **Enterprise REST API (FastAPI):** Эндпоинты `/health`, `/api/tenders`, `/api/analyze` для интеграции с CRM/ERP.
-
----
-
-## 🚀 Быстрый запуск
-
-### Вариант 1: Docker (Рекомендуемый)
+### Через Docker Compose
 
 ```bash
-# Клонирование
 git clone https://github.com/Nari-Ab/tender-ai-bot.git
 cd tender-ai-bot
 
-# Запуск в 1 команду (по умолчанию в демо-режиме с Mock LLM)
 docker compose up --build
 ```
-> API доступно по адресу: `http://localhost:8000/docs`
 
-### Вариант 2: Локально на Python 3.11+
+API доступно по адресу `http://localhost:8000`, документация Swagger UI — `http://localhost:8000/docs`.
+
+### Локальная установка
 
 ```bash
-# Создание виртуального окружения
 python3 -m venv .venv
 source .venv/bin/activate
-
-# Установка зависимостей
 pip install -r requirements.txt
 
-# Запуск тестов (100% passing)
+# Запуск тестов
 pytest tests/ -v
 
-# Запуск веб-сервера
+# Запуск API
 uvicorn src.api.main:app --reload --port 8000
 
-# Запуск Telegram-бота (при наличии токена в .env)
+# Запуск Telegram-бота
 python -m src.bot.bot
 ```
 
 ---
 
-## ⚙️ Конфигурация (.env)
+## Конфигурация (.env)
 
 ```env
 # Выбор провайдера: mock | gigachat | yandexgpt
@@ -136,19 +116,21 @@ GIGACHAT_CREDENTIALS=your_auth_key
 GIGACHAT_SCOPE=GIGACHAT_API_PERS
 GIGACHAT_VERIFY_SSL=false
 
-# YandexGPT Cloud
+# YandexGPT (Yandex Cloud)
 YANDEX_API_KEY=your_api_key
 YANDEX_FOLDER_ID=your_folder_id
 
-# Telegram Bot
-TELEGRAM_BOT_TOKEN=123456789:ABCdef...
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN=your_bot_token
+
+# Приложение
+APP_HOST=0.0.0.0
+APP_PORT=8000
 ```
 
 ---
 
-## 🧪 Тестирование
-
-Проект покрыт автоматическими тестами:
+## Тестирование
 
 ```bash
 pytest tests/ -v
@@ -176,32 +158,29 @@ tests/test_zakupki_parser.py::test_zakupki_feed_monitor_by_id PASSED     [100%]
 
 ---
 
-## 📂 Структура проекта
+## Структура проекта
 
 ```text
 tender-ai-bot/
-├── docs/
-│   └── assets/             # SVG-логотип, анимированное демо, схема архитектуры
-├── sample_data/            # Примеры реальных ТЗ (безопасные и с ловушками)
+├── sample_data/            # Примеры ТЗ для тестов (валидные и с рисками)
 ├── src/
-│   ├── api/                # FastAPI маршруты и схемы
+│   ├── api/                # FastAPI маршруты (/health, /api/tenders, /api/analyze)
 │   ├── bot/                # Telegram-бот на aiogram 3 (хэндлеры, кнопки)
-│   ├── core/               # Настройки (pydantic-settings), модели, логирование
+│   ├── core/               # Pydantic настройки, модели данных, логгер
 │   └── services/
 │       ├── documents/      # Парсер документов (PDF/DOCX) и чанкер
 │       ├── llm/            # Адаптеры GigaChat, YandexGPT, Mock LLM
 │       ├── parsers/        # Монитор закупок ЕИС и Сбербанк-АСТ
 │       ├── rag/            # Семантический поиск риск-кластеров
-│       └── scoring/        # Движок принятия решений Go / No-Go
+│       └── scoring/        # Движок скоринга и принятия решений
 ├── tests/                  # Pytest набор юнит- и интеграционных тестов
-├── Dockerfile              # Мульти-стейдж Docker образ
-├── docker-compose.yml      # Оркестрация API и Бота
+├── Dockerfile              # Сборка контейнера
+├── docker-compose.yml      # Запуск API и Telegram-бота
 └── requirements.txt        # Зависимости Python
 ```
 
 ---
 
-## 📄 Лицензия
-Распространяется под лицензией [MIT](LICENSE).
+## Лицензия
 
-Разработано: **[Nari-Ab](https://github.com/Nari-Ab)**
+MIT License. См. файл [LICENSE](LICENSE).
