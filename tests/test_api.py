@@ -10,7 +10,7 @@ async def test_root_dashboard():
         response = await client.get("/")
         assert response.status_code == 200
         assert "TenderAI Sentinel" in response.text
-        assert "runAudit" in response.text
+        assert "runScoring" in response.text
 
 
 @pytest.mark.asyncio

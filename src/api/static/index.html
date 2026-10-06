@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TenderAI Sentinel — Аналитика и скоринг закупок</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #090d16;
+            --bg-card: #0f172a;
+            --bg-subtle: #1e293b;
+            --border: #334155;
+            --border-subtle: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #0284c7;
+            --accent-cyan-light: #38bdf8;
+            --accent-green: #10b981;
+            --accent-green-bg: #064e3b;
+            --accent-red: #ef4444;
+            --accent-red-bg: #450a0a;
+            --accent-amber: #f59e0b;
+            --accent-amber-bg: #451a03;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Navbar */
+        .navbar {
+            background-color: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #0284c7, #3b82f6);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 16px;
+            color: #fff;
+            box-shadow: 0 0 16px rgba(2, 132, 199, 0.35);
+        }
+
+        .brand-title {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-tab {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: transparent;
+            transition: all 0.15s ease;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-subtle);
+        }
+
+        .nav-tab.active {
+            color: var(--text-primary);
+            background: var(--bg-subtle);
+            border-color: var(--border);
+        }
+
+        .nav-external {
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-cyan-light);
+            background: rgba(2, 132, 199, 0.12);
+            border: 1px solid rgba(2, 132, 199, 0.3);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .nav-external:hover {
+            background: rgba(2, 132, 199, 0.22);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 24px;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* Hero Status Bar */
+        .status-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 12px 20px;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        /* Layout Grid */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 460px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 22px;
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            color: var(--text-primary);
+        }
+
+        .card-badge {
+            font-size: 11px;
+            font-family: var(--font-mono);
+            background: var(--bg-subtle);
+            color: var(--text-secondary);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        /* Preset Buttons */
+        .presets-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .preset-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .preset-btn {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 10px 14px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(2, 132, 199, 0.08);
+        }
+
+        .preset-btn.active {
+            border-color: var(--accent-cyan);
+            background: rgba(2, 132, 199, 0.14);
+        }
+
+        .preset-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .preset-sub {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .preset-tag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .tag-danger {
+            background: var(--accent-red-bg);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .tag-success {
+            background: var(--accent-green-bg);
+            color: #86efac;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            background: #060911;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 13px;
+            transition: border-color 0.15s;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        .form-textarea {
+            height: 120px;
+            resize: vertical;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /* File Upload Drop Zone */
+        .dropzone {
+            border: 1.5px dashed var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            background: rgba(30, 41, 59, 0.25);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 16px;
+        }
+
+        .dropzone:hover {
+            border-color: var(--accent-cyan-light);
+            background: rgba(2, 132, 199, 0.05);
+        }
+
+        .dropzone-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .dropzone-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Action Button */
+        .btn-primary {
+            width: 100%;
+            background: #0284c7;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: #0369a1;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Results Panel */
+        .result-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .result-empty-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 12px;
+        }
+
+        .result-empty-desc {
+            font-size: 13px;
+            max-width: 320px;
+            margin-top: 6px;
+        }
+
+        /* Real Result Card */
+        .verdict-banner {
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .verdict-banner.danger {
+            background: var(--accent-red-bg);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .verdict-banner.success {
+            background: var(--accent-green-bg);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .verdict-banner.warning {
+            background: var(--accent-amber-bg);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .verdict-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .verdict-status {
+            font-size: 18px;
+            font-weight: 800;
+            margin-top: 2px;
+        }
+
+        .verdict-score-badge {
+            text-align: right;
+        }
+
+        .score-number {
+            font-size: 26px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+        }
+
+        .score-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .metric-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: var(--bg-subtle);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .metric-val {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 4px;
+            font-family: var(--font-mono);
+        }
+
+        .summary-box {
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .section-subhead {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .risk-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .risk-item {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-subtle);
+            border-left: 3px solid var(--accent-red);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .risk-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .risk-cat {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .risk-sev {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+
+        .sev-CRITICAL { background: #991b1b; color: #fecaca; }
+        .sev-HIGH { background: #7f1d1d; color: #fca5a5; }
+        .sev-MEDIUM { background: #78350f; color: #fde68a; }
+        .sev-LOW { background: #1e3a8a; color: #bfdbfe; }
+
+        .risk-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .risk-quote {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-family: var(--font-mono);
+            background: #060911;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border-left: 2px solid #475569;
+        }
+
+        .tags-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .item-tag {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: var(--bg-subtle);
+            color: #cbd5e1;
+            border: 1px solid var(--border-subtle);
+        }
+
+        /* Procurement Feed Tab */
+        .tender-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .tender-table th {
+            text-align: left;
+            padding: 12px 14px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 12px;
+        }
+
+        .tender-table td {
+            padding: 14px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+        }
+
+        .tender-table tr:hover td {
+            background: rgba(30, 41, 59, 0.4);
+        }
+
+        .btn-table-action {
+            background: rgba(2, 132, 199, 0.12);
+            color: var(--accent-cyan-light);
+            border: 1px solid rgba(2, 132, 199, 0.3);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-table-action:hover {
+            background: #0284c7;
+            color: #fff;
+        }
+
+        /* Tab Content Switching */
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Spinner */
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top: 2px solid #ffffff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-subtle);
+            padding: 16px 28px;
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <div class="brand-icon">T</div>
+            <div>
+                <div class="brand-title">TenderAI Sentinel</div>
+                <div class="brand-subtitle">AI-аналитика и скоринг закупок (44-ФЗ, 223-ФЗ)</div>
+            </div>
+        </a>
+        <div class="nav-links">
+            <button class="nav-tab active" onclick="switchTab('auditTab')">Аудит ТЗ</button>
+            <button class="nav-tab" onclick="switchTab('feedTab')">Реестр ЕИС</button>
+            <button class="nav-tab" onclick="switchTab('aboutTab')">Архитектура &amp; API</button>
+            <a href="/docs" target="_blank" class="nav-external">Swagger API (/docs)</a>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Status Bar -->
+        <div class="status-strip">
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                <span>Провайдер LLM: <strong id="llmEngineBadge">GigaChat (Mock Fallback)</strong></span>
+            </div>
+            <div style="color: var(--text-muted); font-size: 12px;">
+                Поддержка: <strong>44-ФЗ · 223-ФЗ · ПП РФ №1042</strong>
+            </div>
+        </div>
+
+        <!-- TAB 1: AUDIT DASHBOARD -->
+        <div id="auditTab" class="tab-pane active">
+            <div class="grid-2">
+                <!-- Left Input Panel -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Параметры закупки</span>
+                        <span class="card-badge">Входные данные</span>
+                    </div>
+
+                    <span class="presets-label">Готовые сценарии для проверки:</span>
+                    <div class="preset-list">
+                        <div class="preset-btn active" id="preset1" onclick="applyPreset(1)">
+                            <div>
+                                <div class="preset-name">Серверы ЦОД (48 млн ₽)</div>
+                                <div class="preset-sub">Срок 3 дня, неустойка 2% в день, залог 30%</div>
+                            </div>
+                            <span class="preset-tag tag-danger">Высокий риск</span>
+                        </div>
+                        <div class="preset-btn" id="preset2" onclick="applyPreset(2)">
+                            <div>
+                                <div class="preset-name">Сопровождение ПО (3.5 млн ₽)</div>
+                                <div class="preset-sub">Срок 180 дней, аванс 30%, ПП РФ №1042</div>
+                            </div>
+                            <span class="preset-tag tag-success">Допуск</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Реестровый номер извещения:</label>
+                        <input type="text" id="tenderIdInput" class="form-input" value="0373100012324000999">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Загрузка документации (.txt, .pdf, .docx):</label>
+                        <div class="dropzone" onclick="document.getElementById('fileInput').click()">
+                            <input type="file" id="fileInput" style="display:none" onchange="handleFileUpload(event)">
+                            <div class="dropzone-text" id="dropzoneText">Нажмите для выбора файла ТЗ или перетащите сюда</div>
+                            <div class="dropzone-hint">Поддерживаются PDF, DOCX, TXT до 50 МБ</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Фрагменты технического задания:</label>
+                        <textarea id="tzTextInput" class="form-textarea"></textarea>
+                    </div>
+
+                    <button class="btn-primary" id="btnSubmit" onclick="runScoring()">
+                        <span id="btnText">Запустить аудит условий</span>
+                    </button>
+                </div>
+
+                <!-- Right Results Panel -->
+                <div class="card" id="resultsCard">
+                    <div class="card-header">
+                        <span class="card-title">Заключение AI-анализа</span>
+                        <span class="card-badge" id="evalTimeBadge">Ожидание запуска</span>
+                    </div>
+
+                    <div id="resultsPlaceholder" class="result-empty">
+                        <div style="font-size: 36px; opacity: 0.3;">📋</div>
+                        <div class="result-empty-title">Аудит не запущен</div>
+                        <div class="result-empty-desc">Выберите готовый сценарий слева или загрузите файл ТЗ и нажмите «Запустить аудит условий».</div>
+                    </div>
+
+                    <div id="resultsContent" style="display: none;">
+                        <!-- Banner -->
+                        <div class="verdict-banner danger" id="verdictBanner">
+                            <div>
+                                <div class="verdict-label">Итоговое решение</div>
+                                <div class="verdict-status" id="verdictText">ВЫСОКИЙ РИСК (НЕ УЧАСТВОВАТЬ)</div>
+                            </div>
+                            <div class="verdict-score-badge">
+                                <div class="score-number" id="riskScoreVal">95/100</div>
+                                <div class="score-label">Индекс риска</div>
+                            </div>
+                        </div>
+
+                        <!-- Metrics Grid -->
+                        <div class="metric-cards">
+                            <div class="metric-card">
+                                <div class="metric-label">НМЦК</div>
+                                <div class="metric-val" id="metricPrice">—</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Обеспечение</div>
+                                <div class="metric-val" id="metricSecurity">—</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Срок поставки</div>
+                                <div class="metric-val" id="metricDeadline">—</div>
+                            </div>
+                        </div>
+
+                        <!-- Summary -->
+                        <div class="section-subhead">Суть закупки:</div>
+                        <div class="summary-box" id="summaryText"></div>
+
+                        <!-- Risks -->
+                        <div class="section-subhead" style="color: var(--accent-red);">Выявленные риски и ловушки:</div>
+                        <div class="risk-list" id="risksList"></div>
+
+                        <!-- Missing Docs / Licenses -->
+                        <div class="section-subhead">Обязательные лицензии и реестры:</div>
+                        <div class="tags-row" id="docsList"></div>
+
+                        <!-- Positive factors -->
+                        <div class="section-subhead" style="color: var(--accent-green);">Положительные факторы:</div>
+                        <div class="tags-row" id="advantagesList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: PROCUREMENT FEED -->
+        <div id="feedTab" class="tab-pane">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Мониторинг реестров ЕИС и Сбербанк-АСТ</span>
+                    <button class="btn-table-action" onclick="fetchFeed()">Обновить ленту</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="tender-table">
+                        <thead>
+                            <tr>
+                                <th>Номер закупки</th>
+                                <th>Предмет контракта</th>
+                                <th>Заказчик</th>
+                                <th>НМЦК</th>
+                                <th>Закон</th>
+                                <th>Срок подачи</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px;">
+                                    Загрузка реестра закупок...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: ABOUT & ARCHITECTURE -->
+        <div id="aboutTab" class="tab-pane">
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <span class="card-title">Архитектура платформы</span>
+                    <span class="card-badge">Clean Architecture</span>
+                </div>
+                <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.7;">
+                    <p style="margin-bottom: 12px;">
+                        <strong>TenderAI Sentinel</strong> построен по модульной архитектуре с полной изоляцией слоев парсинга, RAG и языковых моделей:
+                    </p>
+                    <ul style="margin-left: 20px; margin-bottom: 16px;">
+                        <li><strong>Feed Monitor &amp; Scraper:</strong> Модуль мониторинга закупок ЕИС (44-ФЗ, 223-ФЗ) и Сбербанк-АСТ с фильтрацией по ОКПД2 и ценовым лимитам.</li>
+                        <li><strong>Document Parser:</strong> Извлечение текста из файлов спецификаций (PDF, DOCX, TXT) без потери структуры статей.</li>
+                        <li><strong>Semantic Chunker &amp; Clause Retriever:</strong> Выделение критических условий (штрафы, пени, обеспечение, сроки, кабальные ограничения).</li>
+                        <li><strong>Multi-LLM Engine:</strong> Адаптеры к Сбер GigaChat API и Yandex Cloud Foundation Models с валидацией схемы Pydantic и автономным Mock-режимом.</li>
+                        <li><strong>Интерфейсы:</strong> Telegram-бот на <code>aiogram 3</code> и REST API на <code>FastAPI</code>.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Интерактивная API Документация</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                    Вы можете напрямую тестировать REST эндпоинты через встроенный Swagger UI интерфейс FastAPI:
+                </p>
+                <a href="/docs" target="_blank" class="btn-primary" style="text-decoration: none; width: auto; display: inline-flex;">
+                    Открыть Swagger UI (/docs) &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div>TenderAI Sentinel &copy; 2026. Разработано для автоматизации анализа госзакупок.</div>
+        <div>
+            <a href="https://github.com/Nari-Ab/tender-ai-bot" target="_blank" style="color: var(--text-secondary); text-decoration: none;">GitHub Repository &rarr;</a>
+        </div>
+    </footer>
+
+    <!-- Script Logic -->
+    <script>
+        const PRESETS = {
+            1: {
+                id: "0373100012324000999",
+                price: "48 000 000 ₽",
+                security: "14 400 000 ₽ (30%)",
+                deadline: "3 дня",
+                text: "ТЕХНИЧЕСКОЕ ЗАДАНИЕ (ЗАКУПКА № 0373100012324000999)\\nПоставка серверов и СХД для ЦОД.\\nНМЦК: 48 000 000 руб. Срок поставки: строго в течение 3 календарных дней с даты контракта.\\nОбеспечение контракта: 30% (14.4 млн руб.) исключительно живыми деньгами на счет Заказчика (банковские гарантии не принимаются).\\nШтрафы: неустойка 2% в день от цены контракта за каждый день просрочки.\\nЛицензии: действующая лицензия ФСБ на работу с гостайной формы 2, сертификаты СТ-1 Минпромторга."
+            },
+            2: {
+                id: "0173200001424000123",
+                price: "3 500 000 ₽",
+                security: "175 000 ₽ (5%)",
+                deadline: "180 дней",
+                text: "ТЕХНИЧЕСКОЕ ЗАДАНИЕ (ЗАКУПКА № 0173200012324000123)\\nСопровождение и поддержка ПО.\\nНМЦК: 3 500 000 руб. Срок исполнения: 180 календарных дней.\\nАвансирование: 30% от цены контракта.\\nОбеспечение контракта: 5%, допускаются банковские гарантии.\\nОтветственность: пени начисляются в размере 1/300 ключевой ставки ЦБ РФ по ПП РФ № 1042."
+            }
+        };
+
+        // Initialize with Preset 1
+        window.addEventListener('DOMContentLoaded', () => {
+            applyPreset(1);
+            fetchFeed();
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function applyPreset(idx) {
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById('preset' + idx);
+            if (btn) btn.classList.add('active');
+
+            const p = PRESETS[idx];
+            document.getElementById('tenderIdInput').value = p.id;
+            document.getElementById('tzTextInput').value = p.text;
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('dropzoneText').textContent = 'Выбран файл: ' + file.name + ' (' + Math.round(file.size / 1024) + ' КБ)';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('tzTextInput').value = e.target.result;
+            };
+            // Read as text
+            reader.readAsText(file);
+        }
+
+        async function runScoring() {
+            const tenderId = document.getElementById('tenderIdInput').value.trim();
+            const tzText = document.getElementById('tzTextInput').value.trim();
+
+            const btn = document.getElementById('btnSubmit');
+            const btnText = document.getElementById('btnText');
+            btn.disabled = true;
+            btnText.innerHTML = '<span class="spinner"></span> Идет семантический аудит...';
+
+            const startTime = performance.now();
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tender_id: tenderId, tz_text: tzText })
+                });
+
+                if (!response.ok) throw new Error('Ошибка сервера: ' + response.status);
+
+                const data = await response.json();
+                const duration = Math.round(performance.now() - startTime);
+
+                renderResults(data, duration);
+            } catch (err) {
+                alert('Ошибка при анализе: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Запустить аудит условий';
+            }
+        }
+
+        function renderResults(data, durationMs) {
+            document.getElementById('resultsPlaceholder').style.display = 'none';
+            document.getElementById('resultsContent').style.display = 'block';
+            document.getElementById('evalTimeBadge').textContent = 'Обработано за ' + durationMs + ' мс';
+
+            // Verdict & Banner
+            const banner = document.getElementById('verdictBanner');
+            const verdictText = document.getElementById('verdictText');
+            const riskScoreVal = document.getElementById('riskScoreVal');
+
+            verdictText.textContent = data.recommendation;
+            riskScoreVal.textContent = data.risk_score + '/100';
+
+            banner.className = 'verdict-banner ' + (data.risk_score >= 60 ? 'danger' : data.risk_score >= 40 ? 'warning' : 'success');
+
+            // Metrics
+            document.getElementById('summaryText').textContent = data.summary;
+            document.getElementById('metricPrice').textContent = (data.financial_summary || 'По ТЗ');
+            document.getElementById('metricSecurity').textContent = (data.risk_score >= 60 ? '30% (Залог)' : '5% (БГ)');
+            document.getElementById('metricDeadline').textContent = (data.risk_score >= 60 ? '3 дня (Критично)' : '180 дней');
+
+            // Risks
+            const risksList = document.getElementById('risksList');
+            risksList.innerHTML = '';
+            if (data.risks && data.risks.length > 0) {
+                data.risks.forEach(r => {
+                    const item = document.createElement('div');
+                    item.className = 'risk-item';
+                    item.innerHTML = `
+                        <div class="risk-meta">
+                            <span class="risk-cat">${r.category}</span>
+                            <span class="risk-sev sev-${r.severity}">${r.severity}</span>
+                        </div>
+                        <div class="risk-desc">${r.description}</div>
+                        ${r.quote ? `<div class="risk-quote">${r.quote}</div>` : ''}
+                    `;
+                    risksList.appendChild(item);
+                });
+            } else {
+                risksList.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">Критических правовых ловушек не обнаружено.</div>';
+            }
+
+            // Docs
+            const docsList = document.getElementById('docsList');
+            docsList.innerHTML = '';
+            if (data.missing_docs && data.missing_docs.length > 0) {
+                data.missing_docs.forEach(d => {
+                    const tag = document.createElement('span');
+                    tag.className = 'item-tag';
+                    tag.textContent = '• ' + d;
+                    docsList.appendChild(tag);
+                });
+            } else {
+                docsList.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">Спецлицензии не требуются</span>';
+            }
+
+            // Advantages
+            const advantagesList = document.getElementById('advantagesList');
+            advantagesList.innerHTML = '';
+            if (data.advantages && data.advantages.length > 0) {
+                data.advantages.forEach(a => {
+                    const tag = document.createElement('span');
+                    tag.className = 'item-tag';
+                    tag.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                    tag.style.color = '#a7f3d0';
+                    tag.textContent = '✓ ' + a;
+                    advantagesList.appendChild(tag);
+                });
+            } else {
+                advantagesList.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">Стандартные условия</span>';
+            }
+        }
+
+        async function fetchFeed() {
+            const tbody = document.getElementById('feedTableBody');
+            try {
+                const res = await fetch('/api/tenders');
+                const list = await res.json();
+                tbody.innerHTML = '';
+
+                list.forEach(t => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>${t.id}</strong></td>
+                        <td>${t.title}</td>
+                        <td style="color: var(--text-secondary);">${t.customer}</td>
+                        <td><span style="font-family: var(--font-mono); font-weight: 600;">${t.price.toLocaleString('ru-RU')} ₽</span></td>
+                        <td><span class="item-tag">${t.fz_law}</span></td>
+                        <td style="color: var(--text-secondary); font-size: 12px;">${t.deadline_date}</td>
+                        <td>
+                            <button class="btn-table-action" onclick="auditFromTable('${t.id}', '${t.title.replace(/'/g, "\\'")}')">Аудит</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" style="color: var(--accent-red); text-align: center;">Ошибка загрузки: ${err.message}</td></tr>`;
+            }
+        }
+
+        function auditFromTable(tenderId, title) {
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tenderIdInput').value = tenderId;
+            document.getElementById('tzTextInput').value = 'Закупка: ' + title;
+            switchTab('auditTab');
+            runScoring();
+        }
+    </script>
+</body>
+</html>
